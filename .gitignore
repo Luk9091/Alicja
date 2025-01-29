@@ -1,0 +1,15 @@
+__pycache__
+.vscode
+virtual
+Virtual
+*.xlsx
+
+# LaTeX
+*.aux
+*.log
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
