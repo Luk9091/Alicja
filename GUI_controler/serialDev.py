@@ -98,7 +98,7 @@ class serialDevice():
                 ansLen, ans = debugData(data)
                 for i in range(ansLen):
                     self.readQueue.append(ans[i])
-                print(data, end="")
+                print(data)
             except:
                 return
 

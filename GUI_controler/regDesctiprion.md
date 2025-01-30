@@ -2,7 +2,7 @@
 - [x] RC
 - [x] RF
 - [x] RS
-- [ ] RT
+- [ ] RT  - unknown last value
 - [x] RZ
 - [ ] SCL - set threshold calibration
 - [ ] SCS -

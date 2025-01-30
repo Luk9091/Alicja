@@ -18,12 +18,15 @@ class ChannelStatus(QtWidgets.QWidget):
         ADCBoxGroup = QtWidgets.QGroupBox(self)
         ADCBoxLayout = QtWidgets.QGridLayout()
 
+        TDCBoxGroupe = QtWidgets.QGroupBox(self)
+        TDCBoxLayout = QtWidgets.QGridLayout()
 
 
 
         self.RC_lCal_label = QtWidgets.QLabel("Threshold calibration", self)
         self.RC_lCal_setValue = QtWidgets.QLineEdit(self)
         self.RC_lCal_getValue = QtWidgets.QLineEdit(self)
+        self.RC_lCal_getValue.setReadOnly(True)
 
         self.RC_TDC_label = QtWidgets.QLabel("Time alignment", self)
         self.RC_TDC_getValue = QtWidgets.QLineEdit(self)
@@ -70,6 +73,11 @@ class ChannelStatus(QtWidgets.QWidget):
         self.RZ_ADC0_baseLine_value= QtWidgets.QLineEdit(self)
         self.RZ_ADC1_baseLine_value= QtWidgets.QLineEdit(self)
 
+        self.RA_ADC_meanAmp_label = QtWidgets.QLabel("Mean\ncharge\\amplitude")
+        self.RA_ADC_meanAmp_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.RA_ADC0_meanAmp_value = QtWidgets.QLineEdit()
+        self.RA_ADC1_meanAmp_value = QtWidgets.QLineEdit()
+
         self.RZ_ADC_RMS_label = QtWidgets.QLabel("RMS")
         self.RZ_ADC0_RMS_value= QtWidgets.QLineEdit()
         self.RZ_ADC1_RMS_value= QtWidgets.QLineEdit()
@@ -77,6 +85,16 @@ class ChannelStatus(QtWidgets.QWidget):
 
         ADC_label0 = QtWidgets.QLabel("ADC0:", self)
         ADC_label1 = QtWidgets.QLabel("ADC1:", self)
+
+
+        self.RT_TDC_label       = QtWidgets.QLabel("TDC raw data")
+        self.RT_TDC_FPGA_label  = QtWidgets.QLabel("FPGA:")
+        self.RT_TDC_ASIC_label  = QtWidgets.QLabel("ASIC:")
+        self.RT_TDC_FPGA_value  = QtWidgets.QLineEdit()
+        self.RT_TDC_ASIC_value = QtWidgets.QLineEdit()
+
+
+
 
 ############## Layout ###########
 ############## General settings #
@@ -106,10 +124,11 @@ class ChannelStatus(QtWidgets.QWidget):
 #################################
 
 ############## Layout ###########
-############## General settings #
+############## ADC    ###########
         ADCBoxLayout.addWidget(self.RC_rangeCorr_label,         0, 1, 1, 2, QtCore.Qt.AlignmentFlag.AlignCenter)
         ADCBoxLayout.addWidget(self.RZ_ADC_baseLine_label,      0, 3, 1, 1, QtCore.Qt.AlignmentFlag.AlignCenter)
-        ADCBoxLayout.addWidget(self.RZ_ADC_RMS_label,           0, 4, 1, 1, QtCore.Qt.AlignmentFlag.AlignCenter)
+        ADCBoxLayout.addWidget(self.RA_ADC_meanAmp_label,       0, 4, 1, 1, QtCore.Qt.AlignmentFlag.AlignCenter)
+        ADCBoxLayout.addWidget(self.RZ_ADC_RMS_label,           0, 5, 1, 1, QtCore.Qt.AlignmentFlag.AlignCenter)
 
         ADCBoxLayout.addWidget(ADC_label0,                      1, 0)
         ADCBoxLayout.addWidget(ADC_label1,                      2, 0)
@@ -122,12 +141,36 @@ class ChannelStatus(QtWidgets.QWidget):
         ADCBoxLayout.addWidget(self.RZ_ADC0_baseLine_value, 1, 3)
         ADCBoxLayout.addWidget(self.RZ_ADC1_baseLine_value, 2, 3)
 
-        ADCBoxLayout.addWidget(self.RZ_ADC0_RMS_value, 1, 4)
-        ADCBoxLayout.addWidget(self.RZ_ADC1_RMS_value, 2, 4)
+        ADCBoxLayout.addWidget(self.RA_ADC0_meanAmp_value, 1, 4)
+        ADCBoxLayout.addWidget(self.RA_ADC1_meanAmp_value, 2, 4)
+
+        ADCBoxLayout.addWidget(self.RZ_ADC0_RMS_value, 1, 5)
+        ADCBoxLayout.addWidget(self.RZ_ADC1_RMS_value, 2, 5)
+
+        channel0BoxGroup.setLayout(channel0BoxLayout)
+        channel1BoxGroup.setLayout(channel1BoxLayout)
+        channelSettingBoxLayout.addWidget(channel0BoxGroup, 0, 0)
+        channelSettingBoxLayout.addWidget(channel1BoxGroup, 1, 0)
+        channelSettingBoxGroup.setLayout(channelSettingBoxLayout)
+
+
+        ADCBoxGroup.setLayout(ADCBoxLayout)
 #################################
 
 ############## Layout ###########
-############## General settings #
+############## TDC raw###########
+        TDCBoxLayout.addWidget(self.RT_TDC_label,       0, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignCenter)
+        TDCBoxLayout.addWidget(self.RT_TDC_FPGA_label,  1, 1)
+        TDCBoxLayout.addWidget(self.RT_TDC_ASIC_label,  2, 1)
+        TDCBoxLayout.addWidget(self.RT_TDC_FPGA_value,  1, 2)
+        TDCBoxLayout.addWidget(self.RT_TDC_ASIC_value,  2, 2)
+
+
+        TDCBoxGroupe.setLayout(TDCBoxLayout)
+
+        # TDCBoxLayout.addWidget
+        # valueLayout.addWidget(self.RF_TRG_value,           0, 9, 1, 2)
+        # valueLayout.addWidget(self.RF_CFD_value,           1, 9, 1, 2)
 
 
 
@@ -139,22 +182,15 @@ class ChannelStatus(QtWidgets.QWidget):
         # valueLayout.addWidget(self.RC_rangeCorr_value,     3, 1, 1, 2)
 
 
-        # valueLayout.addWidget(self.RF_TRG_value,           0, 9, 1, 2)
-        # valueLayout.addWidget(self.RF_CFD_value,           1, 9, 1, 2)
-
-        channel0BoxGroup.setLayout(channel0BoxLayout)
-        channel1BoxGroup.setLayout(channel1BoxLayout)
-        channelSettingBoxLayout.addWidget(channel0BoxGroup, 0, 0)
-        channelSettingBoxLayout.addWidget(channel1BoxGroup, 1, 0)
-        channelSettingBoxGroup.setLayout(channelSettingBoxLayout)
 
 
-        ADCBoxGroup.setLayout(ADCBoxLayout)
+
 
 
         lay = QtWidgets.QGridLayout(self)
         lay.addWidget(channelSettingBoxGroup, 0, 0)
         lay.addWidget(ADCBoxGroup, 1, 0)
+        lay.addWidget(TDCBoxGroupe, 2, 0)
 
 
 
