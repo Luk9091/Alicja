@@ -6,7 +6,7 @@ from collections import deque
 from time import sleep
 
 
-from debugData import debugData
+from debugData import debugData, debugAns
 
 
 
@@ -24,7 +24,7 @@ def getDevList() -> list:
 
 class serialDevice():
     def __init__(self, portName: str | None = None, baudrate: int = 115200):
-        self.dev = serial.Serial()
+        self.dev = serial.Serial(exclusive=True)
         self.dev.baudrate = baudrate
         self.dev.port = portName
 
@@ -94,11 +94,12 @@ class serialDevice():
             try:
                 data = self._read()
                 data = data.strip("\n")
-
-                ansLen, ans = debugData(data)
-                for i in range(ansLen):
-                    self.readQueue.append(ans[i])
                 print(data)
+
+                if data in debugAns.keys():
+                    ansLen, ans = debugData(data)
+                    for i in range(ansLen):
+                        self.readQueue.append(ans[i])
             except:
                 return
 

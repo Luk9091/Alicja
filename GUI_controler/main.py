@@ -14,7 +14,15 @@ from AD import Analyzer
 def removeChars(input_string: str, chars_to_remove: str) -> str:
     return ''.join(char for char in input_string if char not in chars_to_remove)
 
-# def changeChar(input_string: str, toRemove: str, toReplace: str) -> str:
+def str2int(value: str):
+    if value.startswith("0x"):
+        data = int(value[2:], 16)
+    elif value.startswith("0b"):
+        data = int(value[2:], 2)
+    else:
+        data = int(value)
+
+    return data
 
 
 
@@ -40,9 +48,6 @@ class MainApp(QtWidgets.QWidget):
         self.serialConnectButton = QtWidgets.QPushButton(parent=self, text="Connect")
         self.serialConnectButton.setCheckable(True)
 
-        self.statusLabel = QtWidgets.QLabel("Status:")
-        self.statusLed =  LedIndicator(self)
-
         self.channelComboBox = QtWidgets.QComboBox(self)
         self.channelComboBox.addItems([f"Channel {i+1}" for i in range(12)])
 
@@ -50,35 +55,37 @@ class MainApp(QtWidgets.QWidget):
         self.grid = QtWidgets.QGridLayout(self)
 
         self.serialConnectLayout = QtWidgets.QVBoxLayout()
+        self.serialConnectLayout.addWidget(self.channelComboBox)
         self.serialConnectLayout.addWidget(self.serialDevComboBox)
         self.serialConnectLayout.addWidget(self.serialConnectButton)
         self.serialConnectLayout.addStretch()
 
-        self.statusLayout = QtWidgets.QVBoxLayout()
-        self.statusLayout.addWidget(self.channelComboBox)
-        self.statusLayout.addWidget(self.statusLabel)
-
-
-        self.ledsLayout = QtWidgets.QHBoxLayout()
-        self.ledsLayout.addWidget(self.statusLed)
-
-        self.statusLayout.addLayout(self.ledsLayout)
-        self.statusLayout.addStretch()
 
         self.channelStatus = ChannelStatus()
         self.boardStatus = BoardStatus()
 
 
 
-        self.grid.addLayout(self.statusLayout,          0, 0)
         self.grid.addWidget(self.channelStatus,         0, 1, 2, 1)
         self.grid.addLayout(self.serialConnectLayout,   0, 2)
         self.grid.addWidget(self.boardStatus,           1, 2)
 
+        self.serialDevShowPopup = self.serialDevComboBox.showPopup
+        self.serialDevComboBox.showPopup = self.updateSerialDevice
 
         self.serialConnectButton.clicked.connect(self.connectionToCom)
-        self.serialDevComboBox.currentIndexChanged.connect(self.changeSerialDev)
+        # self.serialDevComboBox.currentIndexChanged.connect(self.changeSerialDev)
 
+        self.channelStatus.RC_lCal_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SCL", channel= self.channelComboBox.currentIndex(), sender= self.channelStatus.RC_lCal_setValue))
+        self.channelStatus.RC_TDC_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SCT", channel= self.channelComboBox.currentIndex(), sender= self.channelStatus.RC_TDC_setValue))
+
+        self.channelStatus.RF_threshold_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SL", channel= self.channelComboBox.currentIndex(), sender= self.channelStatus.RF_threshold_setValue))
+        self.channelStatus.RF_shift_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SZ", channel= self.channelComboBox.currentIndex(), sender= self.channelStatus.RF_shift_setValue))
+        self.channelStatus.RF_zeroOffset_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SO", channel= self.channelComboBox.currentIndex(), sender= self.channelStatus.RF_zeroOffset_setValue))
+        self.channelStatus.RF_delay_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SD", channel= self.channelComboBox.currentIndex(), sender= self.channelStatus.RF_delay_setValue))
+
+        self.channelStatus.TRG_orGate_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SD", sender= self.channelStatus.TRG_orGate_setValue))
+        self.channelStatus.TRG_chargeHigh_setValue.returnPressed.connect(lambda: self.serial_send(cmd= "SD", sender= self.channelStatus.TRG_chargeHigh_setValue))
 
     @QtCore.Slot()
     def connectionToCom(self):
@@ -100,6 +107,18 @@ class MainApp(QtWidgets.QWidget):
                 self.serial.disconnect()
 
             self.serialConnectButton.setText("Connect")
+
+    @QtCore.Slot()
+    def updateSerialDevice(self):
+        current = self.serialDevComboBox.currentText()
+        self.serialDevComboBox.clear()
+        devList = serialDev.getDevList()
+        self.serialDevComboBox.addItems(devList)
+        self.serialDevShowPopup()
+        if current not in devList:
+            self.changeSerialDev()
+        else:
+            self.serialDevComboBox.setCurrentText(current)
 
 
     @QtCore.Slot()
@@ -195,10 +214,15 @@ class MainApp(QtWidgets.QWidget):
                 words = line.split()
 
                 if lineNumber == self.channelComboBox.currentIndex():
-                    self.channelStatus.RF_threshold_getValue.setText(words[words.index("Treshold") + 1])
-                    self.channelStatus.RF_delay_getValue.setText(words[words.index("Delay") + 1])
-                    self.channelStatus.RF_shift_getValue.setText(words[words.index("Shift") + 1])
-                    self.channelStatus.RF_zeroOffset_getValue.setText(words[words.index("offs") + 1])
+                    self.channelStatus.RF_threshold_getValue.setText(str(int(float(words[words.index("Treshold") + 1]) * 100)))
+                    self.channelStatus.RF_delay_getValue.setText(str(int(float(words[words.index("Delay") + 1])*1000)))
+                    self.channelStatus.RF_shift_getValue.setText(str(int(float(words[words.index("Shift") + 1])*100)))
+                    self.channelStatus.RF_zeroOffset_getValue.setText(str(int(float(words[words.index("offs") + 1]) * 100)))
+
+                elif lineNumber == 12:
+                    self.channelStatus.TRG_orGate_getValue.setText(words[-1])
+                elif lineNumber == 13:
+                    self.channelStatus.TRG_chargeHigh_getValue.setText(words[-1])
                 lineNumber = lineNumber + 1
 
 
@@ -218,7 +242,7 @@ class MainApp(QtWidgets.QWidget):
                     words = line.split()
                     self.channelStatus.RC_lCal_getValue.setText(words[3])
                     self.channelStatus.RC_TDC_getValue.setText(words[5])
-                    self.channelStatus.RC_timeShift_value.setText(words[8])
+                    # self.channelStatus.RC_timeShift_value.setText(words[8])
                     self.channelStatus.RC_ADC0_rangeCorr_getValue.setText(words[11])
                     self.channelStatus.RC_ADC1_rangeCorr_getValue.setText(words[12])
 
@@ -250,8 +274,6 @@ class MainApp(QtWidgets.QWidget):
 
 
                 lineNumber = lineNumber + 1
-
-
 
     @QtCore.Slot()
     def RZ_read(self):
@@ -294,6 +316,21 @@ class MainApp(QtWidgets.QWidget):
 
                 channel = channel + 1
 
+    @QtCore.Slot()
+    def serial_send(self, cmd: str, sender: QtWidgets.QLineEdit, channel: int | None = None):
+        try:
+            value = str2int(sender.text())
+        except ValueError:
+            sender.clearFocus()
+            return
+
+        self.serial.write(f"{cmd}{channel if channel is not None else ""} {value}")
+        sender.clearFocus()
+        print(self.serial.read())
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -301,7 +338,8 @@ if __name__ == "__main__":
 
     widget = MainApp()
     args = sys.argv[1:]
-    widget.setChannel(args[0])
+    if len(args) > 0:
+        widget.setChannel(args[0])
     widget.resize(1200, 300)
     widget.show()
 

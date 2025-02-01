@@ -1,7 +1,28 @@
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 from led import LedIndicator
 
+def str2int(value: str):
+    if value.startswith("0x"):
+        data = int(value[2:], 16)
+        base = 16
+    elif value.startswith("0b"):
+        data = int(value[2:], 2)
+        base = 2
+    else:
+        data = int(value)
+        base = 10
 
+    return data, base
+
+def int2str(value: int, base: int= 10):
+    if base == 16:
+        out = hex(value)
+        out = out[2:].upper()
+        return f"0x{out}"
+    elif base == 2:
+        return bin(value)
+    else:
+        return f"{value}"
 
 class ChannelStatus(QtWidgets.QWidget):
     def __init__(self, parent = None):
@@ -21,26 +42,29 @@ class ChannelStatus(QtWidgets.QWidget):
         TDCBoxGroupe = QtWidgets.QGroupBox(self)
         TDCBoxLayout = QtWidgets.QGridLayout()
 
+        TRGBoxGroupe = QtWidgets.QGroupBox(self)
+        TRGBoxLayout = QtWidgets.QGridLayout()
+
 
 
         self.RC_lCal_label = QtWidgets.QLabel("Threshold calibration", self)
         self.RC_lCal_setValue = QtWidgets.QLineEdit(self)
         self.RC_lCal_getValue = QtWidgets.QLineEdit(self)
-        self.RC_lCal_getValue.setReadOnly(True)
 
         self.RC_TDC_label = QtWidgets.QLabel("Time alignment", self)
         self.RC_TDC_getValue = QtWidgets.QLineEdit(self)
         self.RC_TDC_setValue = QtWidgets.QLineEdit(self)
 
-        self.RC_timeShift_label = QtWidgets.QLabel("Time shift", self)
-        self.RC_timeShift_value = QtWidgets.QLineEdit(self)
-        self.RC_timeShift_value.setReadOnly(True)
+
+        # self.RC_timeShift_label = QtWidgets.QLabel("Time shift", self)
+        # self.RC_timeShift_value = QtWidgets.QLineEdit(self)
+        # self.RC_timeShift_value.setReadOnly(True)
 
         self.RC_rangeCorr_label = QtWidgets.QLabel("Range correction", self)
         self.RC_ADC0_rangeCorr_getValue = QtWidgets.QLineEdit(self)
-        self.RC_ADC0_rangeCorr_setValue = QtWidgets.QLineEdit(self)
+        # self.RC_ADC0_rangeCorr_setValue = QtWidgets.QLineEdit(self)
         self.RC_ADC1_rangeCorr_getValue = QtWidgets.QLineEdit(self)
-        self.RC_ADC1_rangeCorr_setValue = QtWidgets.QLineEdit(self)
+        # self.RC_ADC1_rangeCorr_setValue = QtWidgets.QLineEdit(self)
 
 
         self.RF_threshold_label = QtWidgets.QLabel("CFD Threshold")
@@ -58,14 +82,6 @@ class ChannelStatus(QtWidgets.QWidget):
         self.RF_delay_label = QtWidgets.QLabel("ADC Delay")
         self.RF_delay_setValue = QtWidgets.QLineEdit(self)
         self.RF_delay_getValue = QtWidgets.QLineEdit(self)
-
-        self.RF_TRG_label = QtWidgets.QLabel("Trigger window")
-        self.RF_TRG_value = QtWidgets.QLineEdit(self)
-        self.RF_TRG_value.setReadOnly(True)
-
-        self.RF_CFD_label = QtWidgets.QLabel("CFD")
-        self.RF_CFD_value = QtWidgets.QLineEdit(self)
-        self.RF_CFD_value.setReadOnly(True)
 
 
         self.RZ_ADC_baseLine_label = QtWidgets.QLabel("Base\nline")
@@ -91,10 +107,20 @@ class ChannelStatus(QtWidgets.QWidget):
         self.RT_TDC_FPGA_label  = QtWidgets.QLabel("FPGA:")
         self.RT_TDC_ASIC_label  = QtWidgets.QLabel("ASIC:")
         self.RT_TDC_FPGA_value  = QtWidgets.QLineEdit()
-        self.RT_TDC_ASIC_value = QtWidgets.QLineEdit()
+        self.RT_TDC_ASIC_value  = QtWidgets.QLineEdit()
 
 
+        TRG_label = QtWidgets.QLabel("PM TRG control")
+        self.TRG_orGate_label = QtWidgets.QLabel("Or gate:")
+        self.TRG_chargeHigh_label = QtWidgets.QLabel("Charge")
+        self.TRG_orGate_getValue = QtWidgets.QLineEdit()
+        self.TRG_orGate_setValue = QtWidgets.QLineEdit()
+        self.TRG_chargeHigh_getValue = QtWidgets.QLineEdit()
+        self.TRG_chargeHigh_setValue = QtWidgets.QLineEdit()
 
+
+        self.setReadOnly()
+        self.setLimit()
 
 ############## Layout ###########
 ############## General settings #
@@ -134,9 +160,9 @@ class ChannelStatus(QtWidgets.QWidget):
         ADCBoxLayout.addWidget(ADC_label1,                      2, 0)
 
         ADCBoxLayout.addWidget(self.RC_ADC0_rangeCorr_getValue, 1, 1)
-        ADCBoxLayout.addWidget(self.RC_ADC0_rangeCorr_setValue, 1, 2)
+        # ADCBoxLayout.addWidget(self.RC_ADC0_rangeCorr_setValue, 1, 2)
         ADCBoxLayout.addWidget(self.RC_ADC1_rangeCorr_getValue, 2, 1)
-        ADCBoxLayout.addWidget(self.RC_ADC1_rangeCorr_setValue, 2, 2)
+        # ADCBoxLayout.addWidget(self.RC_ADC1_rangeCorr_setValue, 2, 2)
 
         ADCBoxLayout.addWidget(self.RZ_ADC0_baseLine_value, 1, 3)
         ADCBoxLayout.addWidget(self.RZ_ADC1_baseLine_value, 2, 3)
@@ -160,37 +186,86 @@ class ChannelStatus(QtWidgets.QWidget):
 ############## Layout ###########
 ############## TDC raw###########
         TDCBoxLayout.addWidget(self.RT_TDC_label,       0, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignCenter)
-        TDCBoxLayout.addWidget(self.RT_TDC_FPGA_label,  1, 1)
-        TDCBoxLayout.addWidget(self.RT_TDC_ASIC_label,  2, 1)
-        TDCBoxLayout.addWidget(self.RT_TDC_FPGA_value,  1, 2)
-        TDCBoxLayout.addWidget(self.RT_TDC_ASIC_value,  2, 2)
+        TDCBoxLayout.addWidget(self.RT_TDC_FPGA_label,  1, 0)
+        TDCBoxLayout.addWidget(self.RT_TDC_ASIC_label,  2, 0)
+        TDCBoxLayout.addWidget(self.RT_TDC_FPGA_value,  1, 1)
+        TDCBoxLayout.addWidget(self.RT_TDC_ASIC_value,  2, 1)
 
 
         TDCBoxGroupe.setLayout(TDCBoxLayout)
+#################################
 
-        # TDCBoxLayout.addWidget
-        # valueLayout.addWidget(self.RF_TRG_value,           0, 9, 1, 2)
-        # valueLayout.addWidget(self.RF_CFD_value,           1, 9, 1, 2)
-
-
-
-        # labelLayout.addWidget(self.RC_timeShift_label,     0, 6, 1, 2)
-        # labelLayout.addWidget(self.RF_TRG_label,           0, 8, 1, 2)
-        # labelLayout.addWidget(self.RF_CFD_label,           1, 8, 1, 2)
-
-        # valueLayout.addWidget(self.RC_timeShift_value,     2, 1, 1, 2)
-        # valueLayout.addWidget(self.RC_rangeCorr_value,     3, 1, 1, 2)
+############## Layout ###########
+############## TRG cnt###########
 
 
+        TRGBoxLayout.addWidget(TRG_label, 0, 0, 1, 3, QtCore.Qt.AlignmentFlag.AlignCenter)
+        TRGBoxLayout.addWidget(self.TRG_orGate_label,           1, 0)
+        TRGBoxLayout.addWidget(self.TRG_chargeHigh_label,       2, 0)
+        TRGBoxLayout.addWidget(self.TRG_orGate_getValue,        1, 1)
+        TRGBoxLayout.addWidget(self.TRG_orGate_setValue,        1, 2)
+        TRGBoxLayout.addWidget(self.TRG_chargeHigh_getValue,    2, 1)
+        TRGBoxLayout.addWidget(self.TRG_chargeHigh_setValue,    2, 2)
 
+
+        TRGBoxGroupe.setLayout(TRGBoxLayout)
 
 
 
 
         lay = QtWidgets.QGridLayout(self)
-        lay.addWidget(channelSettingBoxGroup, 0, 0)
-        lay.addWidget(ADCBoxGroup, 1, 0)
-        lay.addWidget(TDCBoxGroupe, 2, 0)
+        lay.addWidget(channelSettingBoxGroup,   1, 0, 1, 2)
+        lay.addWidget(ADCBoxGroup,              2, 0, 1, 2)
+        lay.addWidget(TDCBoxGroupe,             3, 0, 1, 1)
+        lay.addWidget(TRGBoxGroupe,             3, 1, 1, 1)
+
+
+
+
+
+
+    def setReadOnly(self):
+        self.RC_lCal_getValue.setReadOnly(True)
+        self.RC_TDC_getValue.setReadOnly(True)
+        self.RC_ADC0_rangeCorr_getValue.setReadOnly(True)
+        self.RC_ADC1_rangeCorr_getValue.setReadOnly(True)
+
+        self.RF_delay_getValue.setReadOnly(True)
+        self.RF_shift_getValue.setReadOnly(True)
+        self.RF_threshold_getValue.setReadOnly(True)
+        self.RF_zeroOffset_getValue.setReadOnly(True)
+
+        self.RA_ADC0_meanAmp_value.setReadOnly(True)
+        self.RA_ADC1_meanAmp_value.setReadOnly(True)
+
+        self.RZ_ADC0_baseLine_value.setReadOnly(True)
+        self.RZ_ADC1_baseLine_value.setReadOnly(True)
+        self.RZ_ADC0_RMS_value.setReadOnly(True)
+        self.RZ_ADC1_RMS_value.setReadOnly(True)
+
+        self.RT_TDC_FPGA_value.setReadOnly(True)
+        self.RT_TDC_ASIC_value.setReadOnly(True)
+
+        self.TRG_orGate_getValue.setReadOnly(True)
+        self.TRG_chargeHigh_getValue.setReadOnly(True)
+
+    def setLimit(self):
+        self.RC_lCal_setValue.returnPressed.connect(lambda: self.checkValue(self.RC_lCal_setValue, 0, 4000))
+        self.RC_TDC_setValue.returnPressed.connect(lambda: self.checkValue(self.RC_TDC_setValue, -2048, 2047))
+
+
+    @QtCore.Slot()
+    def checkValue(self, sender: QtWidgets.QLineEdit, min: int, max: int):
+        try:
+            value, base = str2int(sender.text())
+        except ValueError:
+            sender.setText("NaN")
+            return
+
+        if value > max:
+            sender.setText(int2str(max, base))
+        elif value < min:
+            sender.setText(int2str(min, base))
 
 
 
