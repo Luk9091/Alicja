@@ -250,8 +250,16 @@ class ChannelStatus(QtWidgets.QWidget):
         self.TRG_chargeHigh_getValue.setReadOnly(True)
 
     def setLimit(self):
+        self.TRG_orGate_setValue.returnPressed.connect(lambda: self.checkValue(self.TRG_orGate_setValue, 0, 255))
+        self.TRG_chargeHigh_setValue.returnPressed.connect(lambda: self.checkValue(self.TRG_chargeHigh_setValue, 0, 4095))
+
         self.RC_lCal_setValue.returnPressed.connect(lambda: self.checkValue(self.RC_lCal_setValue, 0, 4000))
         self.RC_TDC_setValue.returnPressed.connect(lambda: self.checkValue(self.RC_TDC_setValue, -2048, 2047))
+
+        self.RF_threshold_setValue.returnPressed.connect(lambda: self.checkValue(self.RF_threshold_setValue, 300, 30_000))
+        self.RF_shift_setValue.returnPressed.connect(lambda: self.checkValue(self.RF_shift_setValue, -500, 500))
+        self.RF_zeroOffset_setValue.returnPressed.connect(lambda: self.checkValue(self.RF_zeroOffset_setValue, -500, 500))
+        self.RF_delay_setValue.returnPressed.connect(lambda: self.checkValue(self.RF_delay_setValue, 0, 20_000))
 
 
     @QtCore.Slot()

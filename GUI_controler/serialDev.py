@@ -29,6 +29,7 @@ class serialDevice():
         self.dev.port = portName
 
         self.readQueue = deque()
+        self.waitOnRead: bool = False
 
     def __del__(self):
         self.disconnect()
@@ -53,6 +54,8 @@ class serialDevice():
 
     def disconnect(self):
         if self.isOpen():
+            # self.dev.cancel_write()
+            # self.dev.cancel_read()
             self.stopThread.set()
             self.readThread.join(0.1)
             self.dev.close()
@@ -63,6 +66,7 @@ class serialDevice():
 
 
     def write(self, data: str, end = "\n") -> int | None:
+        self.waitOnRead = True
         data = data + end
         byteData = data.encode("utf-8")
         return self.dev.write(byteData)
@@ -93,15 +97,12 @@ class serialDevice():
         while not self.stopThread.is_set() and self.isOpen():
             try:
                 data = self._read()
-                data = data.strip("\n")
-                print(data)
-
-                if data in debugAns.keys():
-                    ansLen, ans = debugData(data)
-                    for i in range(ansLen):
-                        self.readQueue.append(ans[i])
             except:
                 return
+
+            data = data.strip("\n")
+            data = data.strip("\r")
+            self.readQueue.append(data)
 
 
 
