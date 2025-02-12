@@ -2,17 +2,17 @@
 
 main:
 .wrap_target
-    jmp pin, CAPTURE_SAMPLE
+    jmp pin, CAPTURE_SAMPLE ; 5n
 .wrap
 
 CAPTURE_SAMPLE:
-    in pins, 8
-    mov pins, x
-    push
+    in pins, 8              ; 5ns
+    mov pins, x             ; 5ns
+    push                    ; 5ns
 
 LOCK:
-    jmp pin, LOCK
-    pull
+    jmp pin, LOCK           ; 10ns
+    ; pull
     jmp main
 
     ; pull
@@ -34,14 +34,14 @@ static inline void read_gpio_program_init(PIO pio, uint sm, uint offset, uint fi
 
     for (uint i = 0; i < countPins; i++){
         pio_gpio_init(pio, firstPin + i);
-        pio_sm_set_consecutive_pindirs(pio, sm, firstPin + 1, 1, false);
     }
+    pio_sm_set_consecutive_pindirs(pio, sm, firstPin, countPins, false);
 
-//    sm_config_set_in_pins(&c, triggerPin);
     sm_config_set_jmp_pin(&c, triggerPin);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
+//    sm_config_set_in_shift(&c, false, true, countPins);
 
     pio_sm_init(pio, sm, offset, &c);
-
     pio_sm_set_enabled(pio, sm, true);
 
 }
