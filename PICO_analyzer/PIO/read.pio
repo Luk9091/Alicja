@@ -6,22 +6,11 @@ main:
 .wrap
 
 CAPTURE_SAMPLE:
-    in pins, 8              ; 5ns
-    mov pins, x             ; 5ns
-    push                    ; 5ns
+    in pins, 16              ; 5ns
 
 LOCK:
     jmp pin, LOCK           ; 10ns
-    ; pull
     jmp main
-
-    ; pull
-    ; in pins, 8
-    ; mov pins, x
-    ; push
-
-    ; jmp main
-
 
 
 
@@ -39,7 +28,7 @@ static inline void read_gpio_program_init(PIO pio, uint sm, uint offset, uint fi
 
     sm_config_set_jmp_pin(&c, triggerPin);
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_RX);
-//    sm_config_set_in_shift(&c, false, true, countPins);
+    ; sm_config_set_in_shift(&c, false, true, countPins);
 
     pio_sm_init(pio, sm, offset, &c);
     pio_sm_set_enabled(pio, sm, true);
