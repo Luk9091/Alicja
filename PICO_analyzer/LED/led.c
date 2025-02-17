@@ -18,6 +18,10 @@ void LED_off(){
     gpio_put(GPIO_INBUILD_LED, 1);
 }
 
+void LED_toggle(){
+    gpio_put(GPIO_INBUILD_LED, !gpio_get(GPIO_INBUILD_LED));
+}
+
 
 #elif defined (BUILD_PICO_W)
 #include <pico/cyw43_arch.h>
@@ -32,6 +36,10 @@ void LED_on(){
 
 void LED_off(){
     cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
+}
+
+void LED_toggle(){
+    cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, !cyw43_arch_gpio_get(CYW43_WL_GPIO_LED_PIN));
 }
 
 #endif

@@ -5,9 +5,8 @@
 
 #define NOWRITE_DELAY_MAX  1024
 #define COMMUNICATION_SPEED_TEST false
+#define ENABLE_GPIO     19
 
-
-volatile uint dma_getCurrentIndex(uint dma, uint *data);
 
 void communication_init();
 void communication_run(uint dma, uint *data);

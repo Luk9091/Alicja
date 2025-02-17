@@ -4,13 +4,8 @@
 #include <string.h>
 
 #include "dma.h"
+#include "led.h"
 
-volatile uint dma_getCurrentIndex(uint dmaChannel, uint *dataArray){
-    uint writeAddress = dma_channel_hw_addr(dmaChannel)->write_addr;
-    uint dataStartAddress = (uintptr_t)(dataArray);
-    uint diff = (writeAddress - dataStartAddress) / 4;
-    return diff;
-}
 
 
 typedef union{
@@ -30,14 +25,16 @@ typedef union{
 void waitUntilOK(){
     bool wait = true;
     char readMsg[256];
+    int index = 0;
     do{
         if (communication_read(readMsg)){
-            wait = strncmp(readMsg, "OK", 2);
-            // readMsg[wait] = '\x00';
-            // tud_cdc_write_str(readMsg);
-            // tud_cdc_write_flush();
+            wait = strncmp(readMsg, "OK", 1);
         }
+
+        LED_toggle();
+        sleep_ms(100);
     }while (wait);
+    LED_on();
 }
 
 
@@ -53,10 +50,7 @@ void communication_run(uint dma, uint *data){
 
 #if defined(COMMUNICATION_VIA_USB)
 void communication_init(){
-    // stdio_init_all();
-    // stdio_usb_deinit();
     stdio_usb_init();
-    // stdio_usb_connected();
 }
 
 
@@ -66,18 +60,21 @@ uint communication_read(const char *str){
 
 
 void communication_sendProcedure(uint dma, uint *data){
-    uint index = 0;
-    uint sampleIndex = 0;
-    uint nowriteDelay = 0;
+    uint32_t index = 0;
+    uint32_t sampleIndex = 0;
+    uint32_t nowriteDelay = 0;
 
     while (1){
-        sampleIndex = dma_getCurrentIndex(dma, data);
+        // printf("Enter to transfer function\n");
+        sampleIndex = dma_getCurrentIndex(dma);
+        // printf("Get DMA index %u\n", sampleIndex);
         if (index != sampleIndex){
             uint sample = data[index];
+            // printf("Index: %u\tdma: %u\n", index, sampleIndex);
             tud_cdc_write(&sample, 2);               // store two byte on USB write buffer
             index++;
-            if (index == DATA_SIZE){
-                index = 0;
+            if (index >= DATA_SIZE){
+                // index = 0;
             }
             nowriteDelay = 0;
         } else{
@@ -92,9 +89,8 @@ void communication_sendProcedure(uint dma, uint *data){
             }
 
         }
+        sleep_us(1);
     }
-    // sleep_ms(2000);
-    // printf("Index: %i", index);
 }
 
 #elif defined(COMMUNICATION_VIA_UART)

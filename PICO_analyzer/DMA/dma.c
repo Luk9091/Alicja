@@ -9,7 +9,7 @@ uint DMA_PIOconfig(volatile void *writeData, const volatile void *readData, uint
     channel_config_set_read_increment(&dmaPIO_conf, false);
     channel_config_set_write_increment(&dmaPIO_conf, true);
     channel_config_set_dreq(&dmaPIO_conf, dreq);
-    channel_config_set_ring(&dmaPIO_conf, true, 0);
+    // channel_config_set_ring(&dmaPIO_conf, true, DATA_BIT_SIZE);
 
     dma_channel_configure(dmaPIO,
         &dmaPIO_conf,
@@ -27,4 +27,11 @@ uint DMA_PIOconfig(volatile void *writeData, const volatile void *readData, uint
 void DMA_setEnable(uint dmaChannel, bool enabled){
     dma_channel_config config = dma_get_channel_config(dmaChannel);
     dma_channel_set_config(dmaChannel, &config, enabled);
+}
+
+
+
+
+uint dma_getCurrentIndex(uint dmaChannel){
+    return (uint)DATA_SIZE - (uint)dma_channel_hw_addr(dmaChannel)->transfer_count;
 }

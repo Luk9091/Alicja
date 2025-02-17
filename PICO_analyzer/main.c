@@ -16,7 +16,6 @@
 
 
 #define TRIGGER_GPIO    18
-#define ENABLE_GPIO     19
 
 #define LSB_GPIO        2
 #define PIO_NUM_PIN     16
@@ -61,7 +60,8 @@ int64_t disableStream_timerCallback(alarm_id_t id, __unused void *userData){
 
 
 void sendAllDataAtOnes(uint dma){
-    uint dmaIndex = dma_getCurrentIndex(dma, sampleData);
+    // uint dmaIndex = dma_getCurrentIndex(dma, sampleData);
+    uint dmaIndex = dma_getCurrentIndex(dma);
     for(uint i; i < dmaIndex; i = i + 16){
         printf("%3u\t%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X\n", i/16,
             sampleData[0 + i], sampleData[1 + i], sampleData[2 + i], sampleData[3 + i],
@@ -93,7 +93,6 @@ int main(){
 
 
     LED_init();
-    LED_on();
     communication_init();
 
     uint dmaPIO = DMA_PIOconfig(
