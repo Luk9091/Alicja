@@ -38,11 +38,12 @@ void waitUntilOK(){
 }
 
 
-void communication_run(uint dma, uint *data){
+void communication_run(uint dma_1, uint dma_2, uint *data){
     waitUntilOK();
-    DMA_setEnable(dma, true);
+    DMA_setEnable(dma_1, true);
+    gpio_put(ENABLE_GPIO, 1);
 
-    communication_sendProcedure(dma, data);
+    communication_sendProcedure(dma_1, dma_2, data);
 }
 
 
@@ -59,22 +60,27 @@ uint communication_read(const char *str){
 }
 
 
-void communication_sendProcedure(uint dma, uint *data){
+void communication_sendProcedure(uint dma_1, uint dma_2, uint *data){
+    uint dma[2] = {dma_1, dma_2};
     uint32_t index = 0;
     uint32_t sampleIndex = 0;
     uint32_t nowriteDelay = 0;
+    uint32_t dmaSel = 0;
 
     while (1){
-        // printf("Enter to transfer function\n");
-        sampleIndex = dma_getCurrentIndex(dma);
-        // printf("Get DMA index %u\n", sampleIndex);
+        sampleIndex = dma_getCurrentIndex(dma[dmaSel]);
         if (index != sampleIndex){
             uint sample = data[index];
-            // printf("Index: %u\tdma: %u\n", index, sampleIndex);
+            // printf("Index: %u\tdma: %u:% 4u\n", index, dmaSel, sampleIndex);
             tud_cdc_write(&sample, 2);               // store two byte on USB write buffer
             index++;
             if (index >= DATA_SIZE){
-                // index = 0;
+                index = 0;
+                if(dmaSel == 1){
+                    dmaSel = 0;
+                } else {
+                    dmaSel = 1;
+                }
             }
             nowriteDelay = 0;
         } else{
@@ -89,7 +95,6 @@ void communication_sendProcedure(uint dma, uint *data){
             }
 
         }
-        sleep_us(1);
     }
 }
 

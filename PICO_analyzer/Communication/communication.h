@@ -9,10 +9,10 @@
 
 
 void communication_init();
-void communication_run(uint dma, uint *data);
+void communication_run(uint dma_1, uint dma_2, uint *data);
 
 static inline uint communication_read(const char *str);
-void communication_sendProcedure(uint dma, uint *data);
+void communication_sendProcedure(uint dma_1, uint dam_2, uint *data);
 
 
 #if COMMUNICATION_SPEED_TEST

@@ -95,14 +95,16 @@ int main(){
     LED_init();
     communication_init();
 
-    uint dmaPIO = DMA_PIOconfig(
+
+    uint dma_1, dma_2;
+    DMA_PIOconfig(
         sampleData,
         &pio->rxf[sm],
-        pio_get_dreq(pio, sm, false)
+        pio_get_dreq(pio, sm, false),
+        &dma_1, &dma_2
     );
 
-    gpio_put(ENABLE_GPIO, 1);
-    communication_run(dmaPIO, sampleData);
+    communication_run(dma_1, dma_2, sampleData);
 
     while(1)
         tight_loop_contents();
