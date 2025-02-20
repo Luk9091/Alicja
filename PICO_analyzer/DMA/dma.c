@@ -37,6 +37,18 @@ void _dma_2_handler(){
 }
 
 
+bool DMA_clear(){
+    // Clear write address DMA 1
+    dma_channel_set_write_addr(dma_1, _writeAddress, false);
+    dma_channel_set_trans_count(dma_1, DATA_SIZE, false);
+
+    // Clear write address DMA 2
+    dma_channel_set_write_addr(dma_2, _writeAddress, false);
+    dma_channel_set_trans_count(dma_1, DATA_SIZE, false);
+
+    return true;
+}
+
 
 
 bool DMA_PIOconfig(void *writeAddress, const volatile void *readAddress, uint dreq, uint *dmaOut_1, uint *dmaOut_2){

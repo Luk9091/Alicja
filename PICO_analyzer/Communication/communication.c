@@ -2,11 +2,17 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <hardware/irq.h>
+
+#if defined(COMMUNICATION_VIA_USB)
+    #include <tusb.h>
+    #include <hardware/structs/usb.h>
+#endif
 
 #include "dma.h"
 #include "led.h"
 
-
+static bool _transferData = false;
 
 typedef union{
     // uint64_t u64;
@@ -19,7 +25,6 @@ typedef union{
         uint8_t quoter[4];
     };
 } convert_t;
-#include "tusb.h"
 
 
 void waitUntilOK(){
@@ -27,19 +32,21 @@ void waitUntilOK(){
     char readMsg[256];
     int index = 0;
     do{
-        if (communication_read(readMsg)){
-            wait = strncmp(readMsg, "OK", 1);
-        }
+        // if (communication_read(readMsg)){
+        //     wait = strncmp(readMsg, "OK", 1);
+        // }
 
         LED_toggle();
         sleep_ms(100);
-    }while (wait);
+    // }while (wait);
+    } while (!_transferData);
     LED_on();
 }
 
 
 void communication_run(uint dma_1, uint dma_2, uint *data){
     waitUntilOK();
+    _transferData = true;
     DMA_setEnable(dma_1, true);
     gpio_put(ENABLE_GPIO, 1);
 
@@ -50,6 +57,22 @@ void communication_run(uint dma_1, uint dma_2, uint *data){
 
 
 #if defined(COMMUNICATION_VIA_USB)
+void tud_cdc_rx_cb(uint8_t itf){
+    char readMsg[CFG_TUD_CDC_RX_BUFSIZE];
+
+    if (communication_read(readMsg)){
+        if(!strncmp(readMsg, "OK", 1)){
+            _transferData = true;
+            return;
+        }
+        if(!strncmp(readMsg, "DONE", 1)){
+            _transferData = false;
+            return;
+        }
+    }
+}
+
+
 void communication_init(){
     stdio_usb_init();
 }
@@ -67,7 +90,7 @@ void communication_sendProcedure(uint dma_1, uint dma_2, uint *data){
     uint32_t nowriteDelay = 0;
     uint32_t dmaSel = 0;
 
-    while (1){
+    while (_transferData){
         sampleIndex = dma_getCurrentIndex(dma[dmaSel]);
         if (index != sampleIndex){
             uint sample = data[index];
@@ -94,8 +117,13 @@ void communication_sendProcedure(uint dma_1, uint dma_2, uint *data){
                 nowriteDelay++; // if the buffer is not empty, count cycles until unconditional send
             }
 
+            // tud_cdc_read
         }
     }
+
+    printf("STOP\n");
+    tud_cdc_write_clear();
+    LED_off();
 }
 
 #elif defined(COMMUNICATION_VIA_UART)

@@ -11,6 +11,8 @@
 bool DMA_PIOconfig(void *writeAddress, const volatile void *readAddress, uint dreq, uint *dmaOut_1, uint *dmaOut_2);
 void DMA_setEnable(uint dmaChannel, bool enable);
 
+bool DMA_clear();
+
 uint dma_getCurrentIndex(uint dmaChannel);
 // uint dma_getCurrentIndex(uint dmaChannel, uint *dataArray);
 

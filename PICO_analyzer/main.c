@@ -15,17 +15,17 @@
 #include "read.pio.h"
 
 
-#define TRIGGER_GPIO    18
+#define TRIGGER_GPIO    16
 
-#define LSB_GPIO        2
+#define LSB_GPIO        0
 #define PIO_NUM_PIN     16
 
 
 uint read_mask =
-    1 <<  2 | 1 <<  3 | 1 <<  4 | 1 <<  5 |
-    1 <<  6 | 1 <<  7 | 1 <<  8 | 1 <<  9 |
-    1 << 10 | 1 << 11 | 1 << 12 | 1 << 13 |
-    1 << 14 | 1 << 15 | 1 << 16 | 1 << 17;
+    1 <<  0 | 1 <<  1 | 1 <<  2 | 1 <<  3 |
+    1 <<  4 | 1 <<  5 | 1 <<  6 | 1 <<  7 |
+    1 <<  8 | 1 << 9 | 1 << 10 | 1 << 11 |
+    1 << 12 | 1 << 13 | 1 << 14 | 1 << 15;
 uint sampleData[DATA_SIZE] = {0};
 
 PIO pio;
@@ -59,18 +59,17 @@ int64_t disableStream_timerCallback(alarm_id_t id, __unused void *userData){
 }
 
 
-void sendAllDataAtOnes(uint dma){
-    // uint dmaIndex = dma_getCurrentIndex(dma, sampleData);
-    uint dmaIndex = dma_getCurrentIndex(dma);
-    for(uint i; i < dmaIndex; i = i + 16){
-        printf("%3u\t%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X\n", i/16,
-            sampleData[0 + i], sampleData[1 + i], sampleData[2 + i], sampleData[3 + i],
-            sampleData[4 + i], sampleData[5 + i], sampleData[6 + i], sampleData[7 + i],
-            sampleData[8 + i], sampleData[9 + i], sampleData[10+ i], sampleData[11+ i],
-            sampleData[12+ i], sampleData[13+ i], sampleData[14+ i], sampleData[15+ i]
-        );
-    }
-}
+// void sendAllDataAtOnes(uint dma){
+//     uint dmaIndex = dma_getCurrentIndex(dma);
+//     for(uint i; i < dmaIndex; i = i + 16){
+//         printf("%3u\t%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X,%04X\n", i/16,
+//             sampleData[0 + i], sampleData[1 + i], sampleData[2 + i], sampleData[3 + i],
+//             sampleData[4 + i], sampleData[5 + i], sampleData[6 + i], sampleData[7 + i],
+//             sampleData[8 + i], sampleData[9 + i], sampleData[10+ i], sampleData[11+ i],
+//             sampleData[12+ i], sampleData[13+ i], sampleData[14+ i], sampleData[15+ i]
+//         );
+//     }
+// }
 
 
 int main(){
@@ -104,8 +103,11 @@ int main(){
         &dma_1, &dma_2
     );
 
-    communication_run(dma_1, dma_2, sampleData);
+    while(1){
+        DMA_clear();
+        communication_run(dma_1, dma_2, sampleData);
+        DMA_setEnable(dma_1, false);
+        DMA_setEnable(dma_2, false);
+    }
 
-    while(1)
-        tight_loop_contents();
 }

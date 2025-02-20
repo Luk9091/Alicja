@@ -73,12 +73,18 @@ target_link_libraries(${PROJECT_NAME}
     pico_stdlib
     pico_multicore
 
-    pico_cyw43_arch_none
     hardware_gpio
     hardware_pio
     hardware_clocks
     hardware_dma
+    hardware_irq
 )
+
+if (PICO_BOARD STREQUAL "pico_w")
+target_link_libraries(${PROJECT_NAME}
+    pico_cyw43_arch_none
+)
+endif()
 
 
 
