@@ -32,13 +32,8 @@ void waitUntilOK(){
     char readMsg[256];
     int index = 0;
     do{
-        // if (communication_read(readMsg)){
-        //     wait = strncmp(readMsg, "OK", 1);
-        // }
-
         LED_toggle();
         sleep_ms(100);
-    // }while (wait);
     } while (!_transferData);
     LED_on();
 }
@@ -61,13 +56,20 @@ void tud_cdc_rx_cb(uint8_t itf){
     char readMsg[CFG_TUD_CDC_RX_BUFSIZE];
 
     if (communication_read(readMsg)){
-        if(!strncmp(readMsg, "OK", 1)){
+        if(strncmp(readMsg, "OK", 2) == PICO_OK){
             _transferData = true;
-            return;
         }
-        if(!strncmp(readMsg, "DONE", 1)){
+        else if(strncmp(readMsg, "DONE", 5) == PICO_OK){
             _transferData = false;
-            return;
+        }
+        else if(strncmp(readMsg, "HELLO", 1) == PICO_OK){
+            char freqBuff[32] = {0};
+            uint freq = getMainFreq(); 
+            sprintf(freqBuff, "Clock: %3iMHz\n\r", freq);
+            tud_cdc_write_clear();
+            tud_cdc_write("Raspberry PI PICO\n\r", 20);
+            tud_cdc_write(freqBuff, strlen(freqBuff));
+            tud_cdc_write_flush();
         }
     }
 }

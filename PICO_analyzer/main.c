@@ -33,6 +33,11 @@ uint sm;
 uint offset;
 
 
+uint getMainFreq(){
+    uint freq = frequency_count_mhz(CLOCKS_FC0_SRC_VALUE_PLL_SYS_CLKSRC_PRIMARY);
+    return freq;
+}
+
 
 
 uint reverseBit(uint64_t data){
@@ -73,8 +78,8 @@ int64_t disableStream_timerCallback(alarm_id_t id, __unused void *userData){
 
 
 int main(){
-    set_sys_clock_khz(200000, true);
-    systick_hw->csr = 0x05;
+    // set_sys_clock_khz(200000, true);
+    // systick_hw->csr = 0x05;
 
     gpio_init_mask(read_mask);
     gpio_init(ENABLE_GPIO);

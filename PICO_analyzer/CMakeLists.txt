@@ -49,6 +49,9 @@ elseif(COMMUNICATION_TYPE STREQUAL "UART")
 endif()
 
 
+add_compile_definitions(SYS_CLK_MHZ=200)
+
+
 add_executable(${PROJECT_NAME}
     main.c
     DMA/dma.c
