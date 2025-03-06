@@ -148,6 +148,6 @@ if __name__ == "__main__":
     dev.write("RS")
     dev.disconnect()
 
-    while dev.toRead():
+    while dev.toRead:
         print(dev.read())
 

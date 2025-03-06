@@ -1,14 +1,25 @@
-import sys
+import sys, os
 import numpy as np
 from collections import deque
 from PySide6 import QtCore, QtWidgets, QtGui
 from PySide6.QtCore import QTimer
-from led import LedColor
 
-from GUI import ChannelStatus, BoardStatus, SerialDev_UI
+if __package__ == "Controller":
+    from .led import LedColor
+    from .GUI import ChannelStatus, BoardStatus, SerialDev_UI
+else:
+    from led import LedColor
+    from GUI import ChannelStatus, BoardStatus, SerialDev_UI
 
 from SerialPort import SerialDevice, getSerialDevices
 
+
+def fromComplex1toInt(data: int, bitSize: int = 8) -> int:
+    sign = 1
+    if data & (1 << (bitSize - 1)):
+        sign = -1
+        data = ~data
+    return sign * (data & ((1 << bitSize) -1))
 
 def removeChars(input_string: str, chars_to_remove: str) -> str:
     return ''.join(char for char in input_string if char not in chars_to_remove)
@@ -27,8 +38,9 @@ def str2int(value: str):
 class MainApp(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
+        self.onRead = False
+        self.waitOnWrite = False
         self.setWindowTitle("Serial PM controller")
-        self.setWindowIcon(QtGui.QIcon("./Icon.png"))
 
         self.serial = SerialDevice()
         self.sendDataQueue = deque()
@@ -40,14 +52,10 @@ class MainApp(QtWidgets.QWidget):
             "RZ":  {"END LINE": "OK",   "handler": self.RZ_read},
             "RC":  {"END LINE": None,   "handler": self.RC_read},
             "RA":  {"END LINE": "OK",   "handler": self.RA_read},
+            "SEND":{"END LINE": None,   "handler": self._serialSend}
         }
 
 
-
-        self.serialDevComboBox = QtWidgets.QComboBox(self)
-        self.serialDevComboBox.addItems(getSerialDevices())
-        self.serialConnectButton = QtWidgets.QPushButton(parent=self, text="Connect")
-        self.serialConnectButton.setCheckable(True)
 
         self.channelComboBox = QtWidgets.QComboBox(self)
         self.channelComboBox.addItems([f"Channel {i+1}" for i in range(12)])
@@ -57,14 +65,13 @@ class MainApp(QtWidgets.QWidget):
 
 
 
-        self.serial_UI      = SerialDev_UI(self.serial)
+        self.serial_UI      = SerialDev_UI(self.serial, "FIT PM\nUART:")
         self.channelStatus  = ChannelStatus()
         self.boardStatus    = BoardStatus()
 
         self.serialConnectLayout = QtWidgets.QVBoxLayout()
         self.serialConnectLayout.addWidget(self.channelComboBox)
-        self.serialConnectLayout.addWidget(self.serialDevComboBox)
-        self.serialConnectLayout.addWidget(self.serialConnectButton)
+        self.serialConnectLayout.addWidget(self.serial_UI)
         self.serialConnectLayout.addStretch()
 
 
@@ -72,18 +79,13 @@ class MainApp(QtWidgets.QWidget):
         self.grid.addLayout(self.serialConnectLayout,   0, 1)
         self.grid.addWidget(self.boardStatus,           1, 1)
 
-
-        self.serialDevShowPopup = self.serialDevComboBox.showPopup
-        self.serialDevComboBox.showPopup = self.updateSerialDevice
-
-        self.serialConnectButton.clicked.connect(self.connectionToCom)
-        self.serialDevComboBox.currentIndexChanged.connect(self.changeSerialDev)
+        self.serial_UI.serialConnectButton.clicked.connect(self.connectionToCom)
 
 
 
         self.buttonEnter_connect()
         self.serialTimer = QTimer(self)
-        self.serialTimer.setInterval(20)
+        self.serialTimer.setInterval(100)
         self.serialTimer.timeout.connect(self.serialUpdateData)
 
 
@@ -140,79 +142,24 @@ class MainApp(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def connectionToCom(self):
-        if self.serialConnectButton.isChecked():
-            if self.serial.connect(self.serialDevComboBox.currentText()):
-                self.serialConnectButton.setText("Disconnect")
-                self.serial.startReadRoutine()
-
+        if self.serial_UI.serialConnectButton.isChecked():
+            if self.serial.isOpen:
                 self.io_timerStart()
-                # self.RS_read()
-                # self.RF_read()
-                # self.RT_read()
-                # self.RC_read()
-                # self.RZ_read()
-                # self.RA_read()
-            else:
-                self.serialConnectButton.setChecked(False)
         else:
-            if self.serial.isOpen():
-                self.serial.disconnect()
             self.io_timerStop()
-
-            self.serialConnectButton.setText("Connect")
-
-    @QtCore.Slot()
-    def updateSerialDevice(self):
-        self.serialDevComboBox.currentIndexChanged.disconnect(self.changeSerialDev)
-        current = self.serialDevComboBox.currentText()
-        self.serialDevComboBox.clear()
-        devList = getSerialDevices()
-        self.serialDevComboBox.addItems(devList)
-        self.serialDevShowPopup()
-        if current not in devList:
-            self.changeSerialDev()
-        else:
-            self.serialDevComboBox.setCurrentText(current)
-        self.serialDevComboBox.currentIndexChanged.connect(self.changeSerialDev)
-
-
-    @QtCore.Slot()
-    def changeSerialDev(self):
-        if self.serialConnectButton.isChecked():
-            if self.serial.isOpen():
-                self.serial.close()
-
-            self.serialConnectButton.setChecked(False)
-            self.serialConnectButton.setText("Connect")
-
-    def setChannel(self, serialPort: str):
-        if serialPort not in getSerialDevices():
-            return
-
-        if self.serialConnectButton.isChecked():
-            if self.serial.isOpen():
-                self.serial.close()
-
-            self.serialConnectButton.setChecked(False)
-            self.serialConnectButton.setText("Connect")
-
-        self.serialDevComboBox.setCurrentText(serialPort)
-
-
 
 
     @QtCore.Slot()
     def RS_read(self):
-        if  not self.waitOnRead:
+        if  not self.onRead:
             self.serial.write("RS")
             self.onRead = True
 
-        while self.serial.toRead():
+        while self.serial.toRead:
             line = self.serial.readLine()
             if line is not None:
                 if line.startswith("Syntax error"):
                     self.onRead = False
-                    self.waitOnRead = False
                     return False
 
 
@@ -254,7 +201,7 @@ class MainApp(QtWidgets.QWidget):
                             self.boardStatus.GBT_led.setColor(LedColor.RED)
 
                 if line.startswith(self.readCmd["RS"]["END LINE"]):
-                    self.serial.waitOnRead = False
+                    self.onRead = False
                     return True
 
         return False
@@ -262,17 +209,16 @@ class MainApp(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def RF_read(self):
-        if not self.waitOnRead:
+        if not self.onRead:
             self.serial.write("RF")
             self.lineNumber = 0
             self.onRead = True
 
-        while self.serial.toRead():
+        while self.serial.toRead:
             line = self.serial.readLine()
             if line is not None:
                 if line.startswith("Syntax error"):
                     self.onRead = False
-                    self.waitOnRead = False
                     return False
 
 
@@ -296,24 +242,23 @@ class MainApp(QtWidgets.QWidget):
 
 
                 if line.startswith(self.readCmd["RF"]["END LINE"]):
-                    self.waitOnRead = False
+                    self.onRead = False
                     return True
         return False
 
     @QtCore.Slot()
     def RC_read(self):
-        if not self.waitOnRead:
+        if not self.onRead:
             self.serial.write("RC")
             self.lineNumber = 0
             self.onRead = True
 
 
-        while self.serial.toRead():
+        while self.serial.toRead:
             line = self.serial.readLine()
             if line is not None:
                 if line.startswith("Syntax error"):
                     self.onRead = False
-                    self.waitOnRead = False
                     return False
 
 
@@ -326,7 +271,7 @@ class MainApp(QtWidgets.QWidget):
                     self.channelStatus.RC_ADC1_rangeCorr_getValue.setText(words[12])
 
                 if self.lineNumber >= 11:
-                    self.waitOnRead = False
+                    self.onRead = False
                     return True
                 self.lineNumber = self.lineNumber + 1
         return False
@@ -335,23 +280,22 @@ class MainApp(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def RT_read(self):
-        if not self.serial.waitOnRead:
+        if not self.onRead:
             self.serial.write("RT")
+            print("Send RT")
             self.lineNumber = -1
             self.onRead = True
 
-        while self.serial.toRead():
-            line = self.serial.read()
+        while self.serial.toRead:
+            line = self.serial.readLine()
             if line is not None:
+                print(line)
                 if line.startswith("Syntax error"):
                     self.onRead = False
-                    self.serial.waitOnRead = False
                     return False
 
-
-
                 if line.startswith(self.readCmd["RT"]["END LINE"]):
-                    self.serial.waitOnRead = False
+                    self.onRead = False
                     return True
 
                 if self.lineNumber == -1:
@@ -362,31 +306,32 @@ class MainApp(QtWidgets.QWidget):
                 if self.lineNumber == self.channelComboBox.currentIndex():
                     self.channelStatus.RT_TDC_FPGA_value.setText(f"0x{words[0][0:2]}")
                     self.channelStatus.RT_TDC_ASIC_value.setText(f"0x{words[0][2:4]}")
+                    tdc = (int(words[1][0:2], base= 16)*64) + fromComplex1toInt(int(words[0][2:4], base= 16), 7)
+                    self.channelStatus.TDC_raw_value.setText(f"{tdc}")
+                    self.lineNumber = self.lineNumber + 1
 
 
-                self.lineNumber = self.lineNumber + 1
         return False
 
 
     @QtCore.Slot()
     def RZ_read(self):
-        if not self.serial.waitOnRead:
+        if not self.onRead:
             self.serial.write("RZ")
             self.lineNumber = 0
             self.onRead = True
 
 
-        while self.serial.toRead():
-            line = self.serial.read()
+        while self.serial.toRead:
+            line = self.serial.readLine()
             if line is not None:
 
                 if line.startswith("Syntax error"):
                     self.onRead = False
-                    self.serial.waitOnRead = False
                     return False
 
                 if line.startswith(self.readCmd["RZ"]["END LINE"]):
-                    self.serial.waitOnRead = False
+                    self.onRead = False
                     return True
 
 
@@ -402,16 +347,16 @@ class MainApp(QtWidgets.QWidget):
 
     @QtCore.Slot()
     def RA_read(self):
-        if not self.serial.waitOnRead:
+        if not self.onRead:
             self.serial.write("RA")
             self.lineNumber = 0
             self.onRead = True
 
-        while self.serial.toRead():
-            line = self.serial.read()
+        while self.serial.toRead:
+            line = self.serial.readLine()
             if line is not None:
                 if line.startswith(self.readCmd["RA"]["END LINE"]):
-                    self.serial.waitOnRead = False
+                    self.onRead = False
                     return True
 
                 if self.lineNumber == self.channelComboBox.currentIndex():
@@ -439,19 +384,23 @@ class MainApp(QtWidgets.QWidget):
         sender.clearFocus()
 
     def _serialSend(self):
-        if not self.serial.waitOnRead:
-            self.serial.write(self.sendDataQueue.popleft())
+        if not self.waitOnWrite:
+            try:
+                self.serial.write(self.sendDataQueue.popleft())
+            except IndexError:
+                return True
+            self.waitOnWrite = True
 
-
-        while self.serial.toRead():
-            line = self.serial.read()
+        while self.serial.toRead:
+            line = self.serial.readLine()
             if line is not None:
-                self.serial.waitOnRead = False
+                self.waitOnWrite = False
                 self.isDataToSend = False
-                print(f"Read line: {line}")
-                if not line.startswith("OK"):
-                    print("Invalid syntax")
-                return
+                # print(f"Read line: {line}")
+                # if not line.startswith("OK"):
+                    # print("Invalid syntax")
+                return True
+        return False
 
 
 
@@ -460,13 +409,13 @@ class MainApp(QtWidgets.QWidget):
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
 
-    widget = MainApp()
+    window = MainApp()
     args = sys.argv[1:]
     if len(args) > 0:
-        widget.setChannel(args[0])
-    widget.resize(800, 400)
-    widget.show()
+        window.serial_UI.setPort(args[0])
+    window.resize(800, 400)
+    window.show()
 
     status = app.exec()
-    widget.serial.close()
+    window.serial.close()
     sys.exit(status)

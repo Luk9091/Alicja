@@ -1,7 +1,12 @@
 from PySide6 import QtCore, QtWidgets, QtGui
-from led import LedIndicator
 
-from SerialDev_UI import SerialDev_UI
+
+if __package__ == "Controller":
+    from .led import LedIndicator
+    from .SerialDev_UI import SerialDev_UI
+else:
+    from led import LedIndicator
+    from SerialDev_UI import SerialDev_UI
 
 
 def str2int(value: str):
@@ -110,20 +115,22 @@ class ChannelStatus(QtWidgets.QWidget):
         self.RZ_ADC1_RMS_value= QtWidgets.QLineEdit(alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
 
-        ADC_label0 = QtWidgets.QLabel("ADC0:", self)
-        ADC_label1 = QtWidgets.QLabel("ADC1:", self)
+        ADC_label0 = QtWidgets.QLabel("ADC0", self)
+        ADC_label1 = QtWidgets.QLabel("ADC1", self)
 
 
         self.RT_TDC_label       = QtWidgets.QLabel("TDC raw data")
-        self.RT_TDC_FPGA_label  = QtWidgets.QLabel("FPGA:")
-        self.RT_TDC_ASIC_label  = QtWidgets.QLabel("ASIC:")
+        self.RT_TDC_FPGA_label  = QtWidgets.QLabel("FPGA")
+        self.RT_TDC_ASIC_label  = QtWidgets.QLabel("ASIC")
+        self.TDC_raw_label      = QtWidgets.QLabel("TDC value")
         self.RT_TDC_FPGA_value  = QtWidgets.QLineEdit(alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
         self.RT_TDC_ASIC_value  = QtWidgets.QLineEdit(alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.TDC_raw_value      = QtWidgets.QLineEdit(alignment=QtCore.Qt.AlignmentFlag.AlignCenter)
 
 
         TRG_label = QtWidgets.QLabel("PM TRG control")
-        self.TRG_orGate_label = QtWidgets.QLabel("Or gate:")
-        self.TRG_chargeHigh_label = QtWidgets.QLabel("Charge")
+        self.TRG_orGate_label = QtWidgets.QLabel("Or gate")
+        self.TRG_chargeHigh_label = QtWidgets.QLabel("Charge\nhigh", alignment=QtCore.Qt.AlignmentFlag.AlignRight)
 
         self.TRG_orGate_getValue = QtWidgets.QLineEdit(alignment=QtCore.Qt.AlignmentFlag.AlignRight)
         self.TRG_orGate_setValue = QtWidgets.QLineEdit()
@@ -211,8 +218,10 @@ class ChannelStatus(QtWidgets.QWidget):
         TDCBoxLayout.addWidget(self.RT_TDC_label,       0, 0, 1, 2, QtCore.Qt.AlignmentFlag.AlignCenter)
         TDCBoxLayout.addWidget(self.RT_TDC_FPGA_label,  1, 0)
         TDCBoxLayout.addWidget(self.RT_TDC_ASIC_label,  2, 0)
+        TDCBoxLayout.addWidget(self.TDC_raw_label,      3, 0)
         TDCBoxLayout.addWidget(self.RT_TDC_FPGA_value,  1, 1)
         TDCBoxLayout.addWidget(self.RT_TDC_ASIC_value,  2, 1)
+        TDCBoxLayout.addWidget(self.TDC_raw_value,      3, 1)
 
 
         TDCBoxGroupe.setLayout(TDCBoxLayout)
@@ -309,31 +318,31 @@ class BoardStatus(QtWidgets.QWidget):
     def __init__(self, parent = None):
         super(BoardStatus, self).__init__(parent)
 
-        self.SN_label = QtWidgets.QLabel("Serial number:")
+        self.SN_label = QtWidgets.QLabel("Serial number")
         self.SN_value = QtWidgets.QLineEdit("Unknown")
         self.SN_value.setReadOnly(True)
         self.SN_value.setMinimumSize(80, 24)
         self.SN_value.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        self.extPowSrc_label = QtWidgets.QLabel("External power src:")
+        self.extPowSrc_label = QtWidgets.QLabel("External power src")
         self.extPowSrc_led = LedIndicator(scale= 0.75)
 
-        self.boardPower_label = QtWidgets.QLabel("Board power:")
+        self.boardPower_label = QtWidgets.QLabel("Board power")
         self.boardPower_led = LedIndicator(scale=0.75)
 
-        self.FPGA_label = QtWidgets.QLabel("FPGA:")
+        self.FPGA_label = QtWidgets.QLabel("FPGA")
         self.FPGA_led   = LedIndicator(scale=0.75)
 
-        self.GBT_label  = QtWidgets.QLabel("GBT:")
+        self.GBT_label  = QtWidgets.QLabel("GBT")
         self.GBT_led    = LedIndicator(scale=0.75)
 
-        self.clock_label = QtWidgets.QLabel("Clock:")
+        self.clock_label = QtWidgets.QLabel("Clock")
         self.clock_led = LedIndicator(scale=0.75)
         self.clock_source = QtWidgets.QLineEdit("Unknown")
         self.clock_source.setReadOnly(True)
         self.clock_source.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
 
-        self.temperature_label = QtWidgets.QLabel("Temperature:")
+        self.temperature_label = QtWidgets.QLabel("Temperature")
         self.temperature_value = QtWidgets.QLineEdit("Unknown")
         self.temperature_status= QtWidgets.QLineEdit("Unknown")
         self.temperature_value.setReadOnly(True)
