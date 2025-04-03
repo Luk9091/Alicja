@@ -7,6 +7,7 @@
 #include "led.h"
 
 #include "spi_master.h"
+#include "interface.h"
 
 #include "util.h"
 
@@ -74,6 +75,9 @@ int getLine(char *buffer){
             continue;
         }
         putchar(c);
+        if (c >= 'A' && c <= 'Z'){
+            c = c -'A' + 'a';
+        }
         buffer[index] = c;
         index++;
     }
@@ -82,6 +86,35 @@ int getLine(char *buffer){
     return index;
 }
 
+
+int readAndDisplay(uint16_t address, uint count){
+    uint32_t *data = (uint32_t*)(malloc(count * sizeof(uint32_t)));
+    if (data == NULL) return -1;
+
+    SPI_master_read_multiple(address, count, data);
+
+    for (uint i = 0; i < count; i++){
+        printf("Read from:\t0x%- 4X: %u\n", address + i, data[i]);
+    }
+
+    free(data);
+    return 0;
+}
+
+int fifoReadAndDisplay(uint16_t address, uint count){
+    uint32_t *data = (uint32_t*)(malloc(count * sizeof(uint32_t)));
+    if (data == NULL) return -1;
+
+    SPI_master_read_multiple(address, count, data);
+
+
+    for (uint i = 0; i < count; i++){
+        printf("Read:\t0x%- 4X: %u\n", i, data[i]);
+    }
+
+    free(data);
+    return 0;
+}
 
 
 
@@ -96,10 +129,12 @@ int main(){
 
 
     SPI_master_init();
+    int32_t setNum[128];
     while (1){
         int len = getLine(readLine);
-        if (strncmp(readLine, "read", 4) == 0){
-            int32_t setNum[2];
+        if (
+            strncmp(readLine, "read", 4) == 0
+        ){
             uint numOfParam = atoli(readLine, len, setNum);
 
             if (numOfParam == 1){
@@ -107,46 +142,151 @@ int main(){
             }
 
 
-            if (numOfParam >= 1){
-                if (setNum[1] > 0){
-                    for(uint i = 0; i < setNum[1]; i++){
-                        uint data = SPI_master_read(setNum[0]+i);
-                        printf("Read from:\t0x%- 4X: 0x%X\n", setNum[0] + i, data);
-                    }
-                } else {
-                    setNum[1] = abs(setNum[1]);
-                    for(uint i = 0; i < setNum[1]; i++){
-                        int32_t data = SPI_master_read(setNum[0]);
-                        printf("Read from:\t0x%- 4X: 0x%X\n", setNum[0], data);
-                    }
-                }
+            if (numOfParam >= 1 && setNum[0] >= 0 && setNum[1] > 0){
+                readAndDisplay(setNum[0], setNum[1]);
                 printf("OK\n");
             } else {
                 printf("Syntax error\n");
             }
         }
-        else if (strncmp(readLine, "write", 5) == 0){
-            int32_t setNum[128];
+        else if (strncmp(readLine, "fread", 5) == 0){
+            uint numOfParam = atoli(readLine, len, setNum);
+
+            if (numOfParam == 1){
+                setNum[1] = 1;
+            }
+
+
+            if (numOfParam >= 1 && setNum[0] >= 0 && setNum[1] > 0){
+                fifoReadAndDisplay(setNum[0], setNum[1]);
+                printf("OK\n");
+            } else {
+                printf("Syntax error\n");
+            }
+
+        }
+        else if (
+            strncmp(readLine, "write", 5) == 0 ||
+            strncmp(readLine, "fwrite", 6) == 0
+        ){
             int numOfParam = atoli(readLine, len, setNum);
             if (numOfParam >= 2){
-                for (uint i = 0; i < numOfParam - 1; i++){
-                    SPI_master_write(setNum[0] + i, setNum[i+1]);
-                    sleep_ms(10);
-                }
+                SPI_master_write_multiple(setNum[0], numOfParam-1, setNum + 1);
                 printf("OK\n");
             } else {
                 printf("Syntax error\n");
             }
         } 
-        else if (strncmp(readLine, "send", 4) == 0){
-            int32_t setNum[128];
+        else if (strncmp(readLine, "ra", 2) == 0){
+            RA_cmd();
+        }
+        else if (strncmp(readLine, "rf", 2) == 0){
+            RF_cmd();
+        }
+        else if (strncmp(readLine, "rc", 2) == 0){
+            RC_cmd();
+        }
+        else if (strncmp(readLine, "rs", 2) == 0){
+            printf("Not implemented\n");
+            // RF_cmd();
+        }
+        else if (strncmp(readLine, "rt", 2) == 0){
+            RT_cmd();
+        }
+        else if (strncmp(readLine, "rz", 2) == 0){
+            RZ_cmd();
+        }
+        else if (strncmp(readLine, "scl", 3) == 0){
             int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 2){
+                SCL_cmd(setNum[0], setNum[1]);
+                printf("OK");
+            } 
+            else {
+                printf("Syntax error\n");
+            }
 
-            for (uint i = 0; i < numOfParam; i ++){
-                SPI_master_send(setNum[i], i == numOfParam - 1);
-                printf("Send data: 0x%hX\n", setNum[i]);
+        }
+        else if (strncmp(readLine, "sct", 3) == 0){
+            int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 2){
+                SCT_cmd(setNum[0], setNum[1]);
+                printf("OK");
+            }
+            else {
+                printf("Syntax error\n");
             }
         }
+        else if (strncmp(readLine, "sd", 2) == 0){
+            int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 2){
+                SD_cmd(setNum[0], setNum[1]);
+                printf("OK");
+            }
+            else {
+                printf("Syntax error\n");
+            }
+        }
+        else if (strncmp(readLine, "sl", 2) == 0){
+            int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 2){
+                SL_cmd(setNum[0], setNum[1]);
+                printf("OK");
+            }
+            else {
+                printf("Syntax error\n");
+            }
+        }
+        else if (strncmp(readLine, "so", 2) == 0){
+            int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 2){
+                SO_cmd(setNum[0], setNum[1]);
+                printf("OK");
+            }
+            else {
+                printf("Syntax error\n");
+            }
+        }
+        else if (strncmp(readLine, "sz", 2) == 0){
+            int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 2){
+                SZ_cmd(setNum[0], setNum[1]);
+                printf("OK");
+            }
+            else {
+                printf("Syntax error\n");
+            }
+        }
+        else if (strncmp(readLine, "ss", 2) == 0){
+            int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 1){
+                SS_cmd(setNum[0]);
+                printf("OK");
+            }
+            else {
+                printf("Syntax error\n");
+            }
+        }
+        else if (strncmp(readLine, "st", 2) == 0){
+            int numOfParam = atoli(readLine, len, setNum);
+            if (numOfParam == 1){
+                ST_cmd(setNum[0]);
+                printf("OK");
+            }
+            else {
+                printf("Syntax error\n");
+            }
+        }
+
+        // else if (strncmp(readLine, "send", 4) == 0){
+        //     int32_t setNum[128];
+        //     int numOfParam = atoli(readLine, len, setNum);
+
+        //     for (uint i = 0; i < numOfParam; i ++){
+        //         SPI_master_send(setNum[i], i == numOfParam - 1);
+        //         printf("Send data: 0x%hX\n", setNum[i]);
+        //     }
+        // }
         else {
             printf("Syntax error\n");
         }
